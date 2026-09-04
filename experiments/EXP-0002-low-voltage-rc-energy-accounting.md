@@ -1,43 +1,75 @@
 # EXP-0002 — Low-Voltage RC Energy Accounting
 
 **Date:** 2026-09-04  
-**Status:** PROTOCOL / NOT YET RUN  
+**Status:** READY FOR PHYSICAL RUN  
 **Parent:** EXP-0001
 
 ## 1. Objective
 
 Validate the measurement architecture on a closed, low-voltage electrical system before testing more complex converters.
 
-The experiment does **not** search for anomalous energy gain. It tests whether input, stored, useful and rejected energy can be separated and balanced within uncertainty.
+The experiment does **not** search for anomalous energy gain. It tests whether input, capacitor storage, load dissipation and remaining losses can be separated and balanced within uncertainty.
 
-## 2. System boundary
+## 2. Concrete bench configuration
+
+Use a **5.00 V DC current-limited source**, a **1000 µF electrolytic capacitor rated ≥10 V**, and a **100 Ω resistor rated ≥0.5 W**.
+
+Nominal capacitor storage at 5.00 V:
+
+`E_C = 1/2 · 0.001 F · (5 V)^2 = 0.0125 J = 12.5 mJ`
+
+Initial resistor power at 5 V:
+
+`P_R = V²/R = 0.25 W`
+
+The load is therefore intentionally low-energy and manageable on a normal laboratory bench.
+
+### Wiring
 
 ```text
-DC SOURCE → SWITCH → R/C NETWORK → LOAD
-             │          │             │
-             └──────────┴─────────────┘
-                       BOUNDARY
+                 S1
++5 V ───────────/ ────────┬──── R = 100 Ω ────┐
+                          │                    │
+                          ├──── C = 1000 µF ──┤
+                          │                    │
+0 V ──────────────────────┴────────────────────┘
 ```
 
-The exact physical boundary must be fixed before measurement. Instrument grounds, probe loading and power-supply return paths must be included in the boundary analysis.
+For charging, S1 connects the source to the RC network. For discharge, disconnect the source and connect the capacitor to the resistor/load through a separate switch or relay arrangement.
 
-## 3. Minimum state variables
+**Do not short the capacitor.** The resistor is the controlled discharge path.
+
+## 3. System boundary
+
+For the primary accounting run, define the boundary around the source, switching, capacitor, resistor, wiring and measurement channels as explicitly as the instrumentation permits.
+
+If source energy is measured at the source terminals, the source-side wiring is outside the energy-transfer boundary; if measured at the supply output connector, state that boundary explicitly and keep it unchanged between runs.
+
+Instrument grounds, probe loading and power-supply return paths must be documented.
+
+## 4. Minimum state variables
+
+Record:
 
 - capacitor voltage `V_C(t)`;
-- resistor/load voltage `V_R(t)`;
+- resistor voltage `V_R(t)`;
 - current `I(t)`;
+- source voltage `V_in(t)`;
+- source current `I_in(t)`;
 - elapsed time `t`;
-- component temperature if it can materially affect the result.
+- capacitor and resistor temperature if it can materially affect the result.
 
-## 4. Energy channels
+## 5. Energy channels
 
 Capacitor storage:
 
 ```text
-E_C(t) = 1/2 C V_C(t)^2
+E_C(t) = 1/2 C_eff V_C(t)^2
 ```
 
-Resistive dissipation:
+Use measured/calibrated `C_eff` where available; do not silently substitute nominal capacitance when precision matters.
+
+Resistor dissipation:
 
 ```text
 P_R(t) = V_R(t) I(t)
@@ -50,74 +82,156 @@ Source input:
 E_in = ∫ V_in(t) I_in(t) dt
 ```
 
-For a chosen boundary, every remaining channel must either be measured, independently calculated from calibrated parameters, or bounded with an explicit uncertainty term.
+For discharge-only accounting:
 
-## 5. Required controls
+```text
+E_C(initial) = E_R + E_other + ΔE_unaccounted
+```
 
-### A — baseline
+For a complete charge/discharge cycle:
 
-Measure the instrument and wiring system with the intended circuit but without the test mechanism under investigation.
+```text
+E_source = ΔE_C + E_R + E_other + E_residual
+```
 
-### B — charge/discharge run
+`E_other` includes identified wiring resistance, capacitor ESR, leakage, instrument loading and other losses that belong to the chosen boundary.
 
-Charge the capacitor from the defined source, then discharge through the defined load.
+## 6. Primary run sequence
 
-### C — reversal
+### Run 0 — Instrument zero / baseline
 
-Where practical, reverse the charge/discharge sequence and verify that the accounting changes consistently with the state transition.
+1. Record all instrument channels with the circuit unpowered.
+2. Record offset and noise for the same acquisition duration used in the experiment.
+3. Verify that current measurement does not report a significant false current with the circuit open.
 
-### D — null
+### Run 1 — Charge
 
-Disconnect the capacitor or suppress the intended storage path while preserving measurement conditions as closely as possible.
+1. Start acquisition before switching the source.
+2. Apply 5.00 V through the controlled source.
+3. Charge the capacitor until `V_C` reaches approximately 5 V.
+4. Stop source input and continue recording briefly to capture settling/leakage.
+5. Calculate `E_in` by numerical integration of measured `V_in(t) I_in(t)`.
+6. Calculate `ΔE_C` from measured capacitor voltage and calibrated capacitance.
 
-## 6. Calibration
+### Run 2 — Controlled discharge
 
-Before the run:
+1. Start acquisition before closing the discharge path.
+2. Disconnect the source.
+3. Discharge the capacitor through 100 Ω.
+4. Continue acquisition until `V_C < 0.1 V` or the predefined endpoint is reached.
+5. Calculate `E_R = ∫V_R I dt`.
+6. Compare discharged capacitor energy with resistor energy plus independently identified losses.
 
-- verify voltage-channel calibration against a known reference;
-- verify current-channel calibration against a known reference;
-- record capacitor nominal value and tolerance;
-- measure or obtain the resistor value and tolerance;
-- record instrument sampling rate and timing uncertainty;
-- record wiring and contact resistance where relevant.
+### Runs 3–7 — Repeat
 
-## 7. Sampling
+Repeat the complete charge/discharge cycle at least five times without changing component values or measurement configuration.
 
-Use simultaneous voltage/current acquisition when possible. Sampling rate must be substantially faster than the fastest relevant transient. Store raw time-series data; derived energies must be reproducible from the raw record.
+## 7. Controls
 
-Do not round intermediate samples before numerical integration.
+### Control A — resistor-only
 
-## 8. Balance test
+Run the source through the resistor without the capacitor storage path, using the same measurement channels. This estimates baseline source/load behavior.
+
+### Control B — capacitor-only observation
+
+Charge the capacitor with the same source and observe its voltage without intentionally extracting energy through the load. This estimates storage and leakage behavior.
+
+### Control C — reversal
+
+Where the switching arrangement allows it, reverse the sequence while maintaining the same measurement boundary. The expected change is in the state trajectory, not creation of energy.
+
+## 8. Calibration
+
+Before physical runs:
+
+- verify voltage measurement against a known reference;
+- verify current measurement against a known reference;
+- measure the resistor with the available calibrated meter;
+- measure capacitor value/ESR with an LCR meter if available;
+- record component tolerances;
+- record ADC/sample rate and timing uncertainty;
+- record supply voltage stability and current-limit setting.
+
+## 9. Sampling and numerical integration
+
+Use simultaneous voltage/current acquisition where possible. Target at least **1 kS/s** for this slow RC system; higher sampling is preferable if available.
+
+For the 100 Ω × 1000 µF nominal values:
+
+`τ = RC = 0.1 s`
+
+so 1 kS/s provides about 1000 samples per nominal time constant.
+
+Store raw time-series data. Integrate using the recorded timestamps (trapezoidal integration is sufficient for the first pass). Do not round intermediate samples.
+
+## 10. Uncertainty budget
+
+At minimum include:
+
+```text
+u(E_in)
+ u(E_C)
+ u(E_R)
+ u(E_other)
+ u(E_residual)
+```
+
+For a first pass, propagate independent component/instrument uncertainties in quadrature where justified. If uncertainties are correlated, record the correlation assumption rather than treating them as independent.
+
+The acceptance interval is defined before inspecting the final residual.
+
+## 11. Balance decision rule
 
 For each run calculate:
 
 ```text
-residual = E_in - E_useful - ΔE_storage - E_rejected
+residual = E_in - ΔE_C - E_R - E_other
 ```
 
-The experiment is a successful accounting validation when the residual is consistent with the combined measurement/model uncertainty.
+and compare `|residual|` with the predefined combined uncertainty.
 
-An unexplained residual is **UNRESOLVED**, not evidence of excess energy.
+Classification:
 
-## 9. Acceptance criteria
+- **BALANCED:** residual consistent with uncertainty;
+- **OPEN ACCOUNT:** residual exceeds uncertainty and an identified channel is missing or inadequately measured;
+- **UNRESOLVED:** residual exceeds uncertainty after identified channels are checked;
+- **INVALID:** calibration, boundary or acquisition requirements failed.
 
-A run is valid only if:
+An unexplained residual is **not** evidence of excess energy.
 
-1. the boundary is documented;
-2. raw `V(t)` and `I(t)` data are preserved;
-3. calibration records are attached;
-4. component tolerances are included;
-5. all identified energy channels are accounted for;
-6. repeated runs agree within the predefined uncertainty budget;
-7. the balance residual is within that budget.
+## 12. What would count as a useful result
 
-## 10. Safety
+The first success criterion is not efficiency. It is demonstrating that repeated runs close the energy account within uncertainty.
 
-Use only a low-voltage, current-limited supply and components rated for the test conditions. No mains voltage, high-energy capacitor bank or uncontrolled discharge is required for this protocol.
+Only after that should we introduce a more interesting coupling or converter and ask whether the same state-transition architecture predicts a measurable difference.
 
-## 11. Result status
+## 13. Safety
 
-No experimental result is claimed until an actual run is performed and raw data are archived.
+Use only a low-voltage, current-limited supply. Verify capacitor polarity. Use a capacitor rated comfortably above the applied voltage. Use the 100 Ω discharge resistor; do not short the capacitor. No mains voltage or high-energy capacitor bank is part of this experiment.
+
+## 14. Data package
+
+Archive:
+
+```text
+EXP-0002/
+├── protocol.md
+├── raw/
+│   ├── run_01.csv
+│   ├── run_02.csv
+│   └── ...
+├── calibration.md
+├── components.md
+├── analysis.py
+└── results.md
+```
+
+The raw files are primary evidence. Derived plots and energy values must be reproducible from them.
+
+## 15. Result status
+
+**No physical result is claimed yet.** This document defines a reproducible bench protocol.
 
 **Calculation ≠ Experiment.**  
-**UNKNOWN ≠ TRUE.**
+**UNKNOWN ≠ TRUE.**  
+**Model cost ≠ physical work.**
