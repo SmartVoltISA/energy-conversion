@@ -1,8 +1,10 @@
-"""Stress-test the energy-accounting architecture across many parameter sets.
+"""Stress-test energy accounting across random ideal RC/RL/RLC systems.
 
-This is a computational experiment, not a physical experiment. It searches for
-numerical or architectural counterexamples in standard ideal RC/RL/RLC models.
+Computational experiment only. RC/RL use analytic trajectories with numerical
+quadrature; RLC uses analytic trajectories plus closed-form integral of R*i^2.
+The goal is to test numerical robustness without hiding a failed slow solver.
 """
+import math
 import numpy as np
 
 
@@ -25,31 +27,63 @@ def rl_step(Vs, R, L, dt, t_end):
     return abs(ein - el - er), max(abs(ein), abs(el), abs(er), 1e-30)
 
 
-def rlc_free(R, L, C, V0, dt, t_end):
-    n = int(round(t_end / dt)) + 1
-    q = np.empty(n); i = np.empty(n)
-    q[0] = C * V0; i[0] = 0.0
+def _int_exp2(k, T):
+    return math.expm1(k * T) / k
 
-    def f(qv, iv):
-        return iv, (-qv / C - R * iv) / L
 
-    for k in range(n - 1):
-        a, b = f(q[k], i[k])
-        c, d = f(q[k] + dt*a/2, i[k] + dt*b/2)
-        e, g = f(q[k] + dt*c/2, i[k] + dt*d/2)
-        j, m = f(q[k] + dt*e, i[k] + dt*g)
-        q[k+1] = q[k] + dt*(a + 2*c + 2*e + j)/6
-        i[k+1] = i[k] + dt*(b + 2*d + 2*g + m)/6
+def _int_exp_sin2(a, w, T):
+    """Integral of exp(-2*a*t) * sin(w*t)^2 from 0 to T."""
+    p = 2.0 * a
+    I0 = (1.0 - math.exp(-p * T)) / p if p else T
+    b = 2.0 * w
+    Ic = (p + math.exp(-p * T) * (-p * math.cos(b * T) + b * math.sin(b * T))) / (p * p + b * b)
+    return 0.5 * (I0 - Ic)
 
-    ec = 0.5 * q**2 / C
-    el = 0.5 * L * i**2
-    e0 = ec[0] + el[0]
-    ef = ec[-1] + el[-1]
-    loss = np.trapezoid(R * i**2, dx=dt)
+
+def rlc_free(R, L, C, V0):
+    """Return exact relative accounting residual for a free series RLC response."""
+    w0 = 1.0 / math.sqrt(L * C)
+    alpha = R / (2.0 * L)
+    q0 = C * V0
+    e0 = 0.5 * C * V0 * V0
+
+    if alpha < w0:  # underdamped
+        wd = math.sqrt(w0 * w0 - alpha * alpha)
+        T = 5.0 * 2.0 * math.pi / w0
+        expT = math.exp(-alpha * T)
+        qT = expT * q0 * (math.cos(wd * T) + (alpha / wd) * math.sin(wd * T))
+        iT = expT * (-q0 * w0 * w0 / wd * math.sin(wd * T))
+        amp = q0 * w0 * w0 / wd
+        loss = R * amp * amp * _int_exp_sin2(alpha, wd, T)
+    else:  # critically/overdamped; sum of two real exponentials
+        if alpha == w0:
+            T = 8.0 / alpha
+            qT = q0 * math.exp(-alpha * T) * (1.0 + alpha * T)
+            iT = -q0 * alpha * alpha * T * math.exp(-alpha * T)
+            # i(t) = -q0*alpha^2*t*exp(-alpha*t)
+            p = 2.0 * alpha
+            integral_t2 = (2.0 - math.exp(-p * T) * (p * p * T * T + 2.0 * p * T + 2.0)) / (p ** 3)
+            loss = R * (q0 * alpha * alpha) ** 2 * integral_t2
+        else:
+            s = math.sqrt(alpha * alpha - w0 * w0)
+            r1, r2 = -alpha + s, -alpha - s
+            A = (-r2 * q0) / (r1 - r2)
+            B = q0 - A
+            T = 8.0 / (-r1)
+            e1, e2 = math.exp(r1 * T), math.exp(r2 * T)
+            qT = A * e1 + B * e2
+            iT = A * r1 * e1 + B * r2 * e2
+            loss = R * (
+                (A * r1) ** 2 * _int_exp2(2.0 * r1, T)
+                + (B * r2) ** 2 * _int_exp2(2.0 * r2, T)
+                + 2.0 * A * r1 * B * r2 * _int_exp2(r1 + r2, T)
+            )
+
+    ef = 0.5 * qT * qT / C + 0.5 * L * iT * iT
     return abs(e0 - ef - loss), max(abs(e0), abs(ef), abs(loss), 1e-30)
 
 
-def main(seed=20260904, samples=10000):
+def main(seed=20260904, samples=10000, threshold=1e-10):
     rng = np.random.default_rng(seed)
     worst = {"RC": (0.0, None), "RL": (0.0, None), "RLC": (0.0, None)}
     failures = []
@@ -60,11 +94,10 @@ def main(seed=20260904, samples=10000):
         C = 10 ** rng.uniform(-5, -2)
         tau = R * C
         dt = tau / rng.choice([100, 300, 1000])
-        t_end = tau * 8
-        absres, scale = rc_charge(Vs, R, C, dt, t_end)
+        absres, scale = rc_charge(Vs, R, C, dt, tau * 8)
         rel = absres / scale
-        if rel > worst["RC"][0]: worst["RC"] = (rel, (Vs, R, C, dt, t_end))
-        if rel > 1e-8: failures.append(("RC", k, rel))
+        if rel > worst["RC"][0]: worst["RC"] = (rel, (Vs, R, C, dt))
+        if rel > threshold: failures.append(("RC", k, rel))
 
         L = 10 ** rng.uniform(-5, -1)
         tau_l = L / R
@@ -72,26 +105,25 @@ def main(seed=20260904, samples=10000):
         absres, scale = rl_step(Vs, R, L, dt_l, tau_l * 8)
         rel = absres / scale
         if rel > worst["RL"][0]: worst["RL"] = (rel, (Vs, R, L, dt_l))
-        if rel > 1e-8: failures.append(("RL", k, rel))
+        if rel > threshold: failures.append(("RL", k, rel))
 
         Rl = 10 ** rng.uniform(-2, 1)
         Ll = 10 ** rng.uniform(-4, -1)
         Cc = 10 ** rng.uniform(-5, -2)
-        period = 2 * np.pi * np.sqrt(Ll * Cc)
-        dt_r = period / rng.choice([1000, 3000])
-        absres, scale = rlc_free(Rl, Ll, Cc, Vs, dt_r, period * 5)
+        absres, scale = rlc_free(Rl, Ll, Cc, Vs)
         rel = absres / scale
-        if rel > worst["RLC"][0]: worst["RLC"] = (rel, (Rl, Ll, Cc, Vs, dt_r))
-        if rel > 1e-8: failures.append(("RLC", k, rel))
+        if rel > worst["RLC"][0]: worst["RLC"] = (rel, (Rl, Ll, Cc, Vs))
+        if rel > threshold: failures.append(("RLC", k, rel))
 
     print(f"samples={samples}")
+    print(f"threshold={threshold:.1e}")
     print(f"failures={len(failures)}")
     for name, (rel, params) in worst.items():
         print(f"{name}: worst_relative_residual={rel:.6e} params={params}")
     if failures:
         print("FIRST_FAILURE", failures[0])
     else:
-        print("No residual exceeded 1e-8 relative to the energy scale.")
+        print("No residual exceeded threshold.")
 
 
 if __name__ == "__main__":
