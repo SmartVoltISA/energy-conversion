@@ -68,19 +68,7 @@
 
 `SOURCE → CARRIER → INTERACTION → CONVERTER → OUTPUT`
 
-Для каждого перехода фиксируем:
-
-- вход;
-- выход;
-- физический механизм;
-- изменение состояния;
-- направление передачи;
-- рассеяние;
-- КПД, если применим;
-- границы системы;
-- измерения;
-- источник данных;
-- статус проверки.
+Для каждого перехода фиксируем вход, выход, физический механизм, изменение состояния, направление передачи, рассеяние, КПД, границы системы, измерения, источник данных и статус проверки.
 
 Ключевой вопрос:
 
@@ -113,7 +101,22 @@
 
 Предположение, расчёт, экспериментальный результат и установленный факт должны различаться.
 
-## 8. Rules
+## 8. Legacy Ω-Lab research
+
+Предыдущая исследовательская ветка уже содержит серию экспериментов по структурному потенциалу, сохранению, барьерам, направленности, перераспределению, канализации, памяти и трёхсостоянийному поведению.
+
+Полный индекс и provenance:
+
+`legacy/OMEGA-ENERGY-INDEX.md`
+
+Особая ветка по молнии и электромагнитным аналогам:
+
+- `legacy/lightning/OMEGA-SPEC-1-lightning-state-transition.md`
+- `legacy/lightning/E-MAGNETIC-0001-environmental-potential-lightning-analog.md`
+
+Исходные Ω-Lab документы не переписываются и остаются первичным источником истории. Новый репозиторий использует их как подтверждённую исследовательскую опору и продолжает эксперименты дальше.
+
+## 9. Rules
 
 - UNKNOWN ≠ TRUE.
 - Hypothesis ≠ Result.
@@ -123,21 +126,16 @@
 - Shorter conversion chain ≠ automatically better system.
 - Conservation of energy ≠ efficiency guarantee.
 - Numerical claims require defined boundaries and sources.
+- Reproduction status must be recorded separately from original result.
 
-## 9. First objective
+## 10. Current objective
 
-Не придумывать новый двигатель заранее. Сначала построить проверяемую карту:
+Соединить старую исследовательскую цепочку с инженерной задачей преобразования:
 
-`Energy source → physical carrier → interaction → conversion → useful output → rejected energy`
+`potential → flow → conversion → useful work → rejected energy → verification`
 
-и определить, **где именно возникает ограничение**.
-
-Только после этого искать новый механизм.
+Следующий этап — не придумывать двигатель заранее, а найти минимальный физически проверяемый преобразователь и измерить его полный энергетический баланс.
 
 ## Status
 
-**Phase 0 — Foundation**
-
-Repository created. Definitions, boundaries and first research model established.
-
-Next: `EXP-0001 — Energy accounting and conversion graph`.
+**Phase 1 — Legacy integration + conversion research**
