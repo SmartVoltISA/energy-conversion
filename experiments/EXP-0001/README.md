@@ -1,69 +1,39 @@
 # EXP-0001 — Energy Accounting and Conversion Graph
 
-## Question
+**Canonical record:** `experiments/EXP-0001-energy-accounting-and-conversion-graph.md`  
+**Status:** OPEN / FOUNDATION EXPERIMENT
 
-Can different energy-conversion systems be compared using one common graph and complete energy accounting rather than only nominal efficiency?
+This directory is retained as a compatibility/provenance location. The flat file above is the canonical experiment record; no separate experimental result is claimed here.
 
-## Hypothesis
+## Core question
 
-A common state-transition representation will expose where useful energy is retained, transferred, converted and rejected. The shortest conversion path is not assumed to be the most efficient.
+Which physical converter most cleanly exposes the transition from potential to flow to useful work while allowing the complete energy account to be closed?
 
-## Systems to compare
+## Common chain
 
-1. Electrical generator driven by a heat engine.
-2. Fuel cell.
-3. Photovoltaic conversion.
-4. Electromechanical generator.
-5. Nuclear heat cycle.
-6. Direct-energy-conversion concepts.
+```text
+SOURCE → CARRIER → INTERACTION → CONVERTER → OUTPUT
+```
 
-## Variables
+## Accounting
 
-`E_in` — input energy.
+```text
+E_in - E_out = ΔE_system + E_rejected
+```
 
-`E_useful` — useful exported energy.
+The physical system must have a defined boundary and independently measurable channels.
 
-`E_storage` — change in stored energy.
+## Required measurements
 
-`E_rejected` — energy leaving the useful channel.
+- input energy;
+- useful output energy/work;
+- internal stored-energy/state change;
+- rejected/dissipated energy;
+- time-resolved state variables where possible;
+- uncertainty and repeatability.
 
-`η = E_useful / E_in`
+## Decision rule
 
-`P = E_useful / Δt`
+An apparent gain with an open account is **UNRESOLVED**, not excess energy.
 
-## Protocol
-
-For every system:
-
-1. Define the system boundary.
-2. Identify the initial state.
-3. Identify the energy carrier(s).
-4. Identify every physical interaction.
-5. Record each state transition.
-6. Account for useful output.
-7. Account for rejected energy.
-8. Calculate efficiency.
-9. Record uncertainty and source.
-10. Compare graphs only after equivalent boundaries are established.
-
-## Controls
-
-- Do not compare thermal efficiency with electrical efficiency without defining the same boundary.
-- Do not count the same energy twice.
-- Do not treat fuel mass as energy without a defined calorific or physical energy value.
-- Do not infer practical efficiency from theoretical energy density.
-- Distinguish calculated values from measured values.
-
-## Expected result
-
-A normalized table and graph showing:
-
-`SOURCE → CARRIER → INTERACTION → CONVERTER → USEFUL OUTPUT`
-
-plus every identified rejected-energy branch.
-
-## Status
-
-`HYPOTHESIS / NOT YET RUN`
-
-No experimental result is claimed by this document.
+**UNKNOWN ≠ TRUE. Calculation ≠ Experiment. Model cost ≠ physical work.**
