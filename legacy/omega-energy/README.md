@@ -12,7 +12,8 @@ Legacy results are evidence of what was tested in Ω-Lab, not automatically vali
 - E-ENERGY-0011 — Release / Transfer
 - E-ENERGY-0012 — Binding / Destruction Symmetry
 - E-ENERGY-0013 — Transition Asymmetry / No-Go Test
-- E-ENERGY-0014 — Transition Cost from State (new continuation, 2026-09-04)
+- E-ENERGY-0014 — Transition Cost from State (**new native continuation, not legacy**)
+- E-ENERGY-0015 — History-Dependent Transition / Dissipation (**new native continuation, not legacy**)
 - E-ENERGY-0020 — Transition Barrier / Constrained Change
 - E-ENERGY-0021 — transition/barrier follow-up
 - E-ENERGY-0022 — Emergent Storage from Relational History
@@ -30,7 +31,7 @@ Legacy results are evidence of what was tested in Ω-Lab, not automatically vali
 - E-ENERGY-0033 — Spatial Channel with Green/Red/Blue States
 - E-ENERGY-0034 — Color as Structural Memory
 - E-ENERGY-0035 — Color-State as Memory
-- E-ENERGY-0036 — Emergence of Three States Without Color Labels
+- E-ENERGY-0036 — Three-state emergence **not demonstrated; negative/informative result**
 - E-ENERGY-0037 — Symmetric Bifurcation
 
 ## Main surviving constraints
@@ -42,7 +43,8 @@ Legacy results are evidence of what was tested in Ω-Lab, not automatically vali
 5. Local apparent release may be redistribution into another degree of freedom.
 6. History/memory can become part of effective state and stabilize selected channels in toy models.
 7. The independent reproduction 0032R did not reproduce the exact 0032 numerical result; this remains unresolved.
-8. Color is operational notation; dynamically emerging state distinctions are stronger than imposed labels but remain toy-model results.
+8. The minimal scalar memory model in 0036 did not produce three stable states; two polar states plus a transition region were observed.
+9. E-ENERGY-0037 demonstrates a separate symmetric bifurcation mechanism and does not establish energy generation.
 
 ## Current boundary
 
